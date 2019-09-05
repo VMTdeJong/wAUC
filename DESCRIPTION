@@ -1,0 +1,18 @@
+Package: wAUC
+Title: Calculate a Weighted AUC
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Valentijn",
+           family = "de Jong",
+           role = c("aut", "cre"),
+           email="Valentijn.M.T.de.Jong@gmail.com", 
+           comment="https://orcid.org/0000-0001-9921-3468")
+Description: Calculate a weighted AUC (c-statistic), either exactly or by resampling. 
+    If propensities are used for the weights, the weighted AUC estimates the propensity weighted AUC.
+Imports: stats
+Depends: R (>= 3.2.0)
+Suggests: testthat (>= 1.0.2), pROC (>= 1.14.0)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
