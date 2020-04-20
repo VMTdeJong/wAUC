@@ -59,7 +59,7 @@ wAUC <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, method = "resampling"
     }
   }
   else
-    out <- wAUC_exact(y, p, w, na.rm, ...)
+    out <- wAUC_exact(y, p, w, na.rm, rescale.w, ...)
   out$call <- match.call()
   out
 }
