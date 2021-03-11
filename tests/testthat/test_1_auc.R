@@ -11,7 +11,7 @@ w <- rep(1, n)
 
 ### Tests
 test_that("The exact AUC methods exactly equal the AUC", {
-  proc_est      <- unlist(pROC::auc(y, p)[[1]])
+  proc_est      <- suppressMessages(unlist(pROC::auc(y, p)[[1]]))
   auc_est       <- AUC(y, p)$est
   auc_f_est     <- AUC(y, p, AUC_method = "factorial")$est
   auc_d_est     <- AUC(y, p, AUC_method = "default")$est
@@ -25,8 +25,8 @@ test_that("The exact AUC methods exactly equal the AUC", {
   expect_identical(factorial_est, default_est)
 })
 
-test_that("For uniform weights, the exact wAUC methods exactly equal the default AUC", {
-  proc_est <- unlist(pROC::auc(y, p)[[1]])
+test_that("For unity weights, the exact wAUC methods exactly equal the default AUC", {
+  proc_est <- suppressMessages(unlist(pROC::auc(y, p)[[1]]))
   weighted_exact_auc_est <- wAUC_exact(y, p, w)$est
   weighted_e_auc_est <- wAUC(y, p, w, method = "exact")$est
   
@@ -34,9 +34,9 @@ test_that("For uniform weights, the exact wAUC methods exactly equal the default
   expect_identical(weighted_exact_auc_est, weighted_e_auc_est)
 })
 
-test_that("For uniform weights, the resampling methods nearly equal default c-statistic and its ci", {
-  proc_fit <- pROC::auc(y, p)
-  proc_ci  <- pROC::ci(proc_fit)[1:3]
+test_that("For unity weights, the resampling methods nearly equal default c-statistic and its ci", {
+  proc_fit <- suppressMessages(pROC::auc(y, p))
+  proc_ci  <- suppressMessages(pROC::ci(proc_fit)[1:3])
   
   resampling_fit <- wAUC(y, p, w, method = "resampling", replace = TRUE, I = 5000)
   resampling_ci  <- unlist(resampling_fit[c("ci.lb", "estimate", "ci.ub")])
@@ -47,7 +47,18 @@ test_that("For uniform weights, the resampling methods nearly equal default c-st
   expect_lt(diff[[3]], .005)
 })
 
-
+test_that("For unity weights, the exact and resampling noreplace methods yield identical point estimates", {
+  w_auc_est_exact      <- wAUC(y, p, w, method = "exact")
+  w_auc_est_noreplace  <- wAUC(y, p, w, method = "resampling", replace = FALSE)
+  w_auc_est_exact_slow <- wAUC_exact_slow(y, p, w)
+  
+  est_noreplace  <- w_auc_est_noreplace$estimate
+  est_exact      <- w_auc_est_exact$estimate
+  est_exact_slow <- w_auc_est_exact_slow$estimate
+  
+  expect_identical(est_noreplace, est_exact)
+  expect_identical(est_exact, est_exact_slow)
+})
 
 
 # library("microbenchmark")
@@ -69,3 +80,5 @@ test_that("For uniform weights, the resampling methods nearly equal default c-st
 # y <- rbinom(n, 1, p)
 # 
 # microbenchmark(AUC_default(y, p), AUC_factorial(y,p))
+# microbenchmark(AUC_default(y, p), suppressMessages(pROC::auc(y, p)))
+# microbenchmark(AUC_default(y, p), AUC(y, p), times = 10000)
