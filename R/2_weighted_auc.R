@@ -50,7 +50,7 @@
 #' @export
 wAUC <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, method = "resampling", ...) {
   if (pmatch(method, "resampling", nomatch = 0)) {
-    out <- wAUC_resampling(y, p, w, na.rm, ...)
+    out <- wAUC_resampling(y, p, w, na.rm, rescale.w, ...)
     out$estimate <- out$statistics$median
 
     if (out$options$replace) {
@@ -141,7 +141,9 @@ wAUC_exact <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, nonunity = FALS
   pos_w <- w[y]
   neg_w <- w[!y]
 
-  s <- (outer(sum(y):1, 1:sum(!y), function(i, j) (sign(pos_p[i] - neg_p[j]))) + 1)
+  # + 1 converts the -1 or +1 from sign() to 0 or 2, 
+  # then divide final estimate by 2 to obtain 0 or 1.
+  s <- (outer(1:sum(y), 1:sum(!y), function(i, j) (sign(pos_p[i] - neg_p[j]))) + 1)
   W <- outer(pos_w, neg_w)
 
   if (nonunity && all(s == 0))
@@ -150,6 +152,47 @@ wAUC_exact <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, nonunity = FALS
     s <- c(s, 1)
 
   out$estimate <- (mean(s*W, na.rm = na.rm) / mean(W, na.rm = na.rm))/2
+  out
+}
+
+# This function is always slower than the one above, and should always produce
+# the exact same value. The only reason that it is included is because this uses
+# the same notation as we did in the manuscript.
+wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, nonunity = FALSE, nonzero = FALSE,  ...){
+  if (rescale.w) {
+    w <- w - min(w)
+    w <- w/max(w)
+  }
+  out <- list(options = list(na.rm = na.rm,
+                             nonunity = nonunity,
+                             nonzero = nonzero))
+  class(out) <- c("wAUC_exact", "wAUC", class(out))
+  
+  score_order <- order(p, decreasing=TRUE)
+  y <- as.logical(y[score_order])
+  p <- p[score_order]
+  w <- w[score_order]
+  
+  pos_p <- p[y]
+  neg_p <- p[!y]
+  pos_w <- w[y]
+  neg_w <- w[!y]
+  
+  cs <- matrix(nrow = length(pos_p), ncol = length(neg_p))
+  W <- outer(pos_w, neg_w)
+
+  for (i in seq_along(pos_p))
+    for (q in seq_along(neg_p))
+      cs[i, q] <- (pos_p[i] > neg_p[q]) * W[i, q]
+  
+  if (any(ties <- pos_p %in% neg_p))  # save ties for pos_p, if any ties, assess which
+    for (tie in which(ties))          # then only visit the pos_p that are tied (with neg_p)
+      for (q in seq_along(neg_p))     # But visit all neg_p, because we don't know which neg_p were tied yet.
+        if (pos_p[tie] == neg_p[q])
+          cs[tie, q] <- W[tie, q] / 2 # weight * 1/2 for a tie
+  
+  out$estimate <- sum(cs, na.rm = na.rm) / sum(W)
+  
   out
 }
 
