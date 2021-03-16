@@ -10,7 +10,7 @@ y <- rbinom(n, 1, p)
 w <- rep(1, n)
 
 ### Tests
-test_that("The exact AUC methods exactly equal the AUC", {
+test_that("The unweighted exact AUC methods exactly equal the AUC", {
   proc_est      <- suppressMessages(unlist(pROC::auc(y, p)[[1]]))
   auc_est       <- AUC(y, p)$est
   auc_f_est     <- AUC(y, p, AUC_method = "factorial")$est
@@ -38,7 +38,7 @@ test_that("For unity weights, the resampling methods nearly equal default c-stat
   proc_fit <- suppressMessages(pROC::auc(y, p))
   proc_ci  <- suppressMessages(pROC::ci(proc_fit)[1:3])
   
-  resampling_fit <- wAUC(y, p, w, method = "resampling", replace = TRUE, I = 5000)
+  resampling_fit <- wAUC(y, p, w, method = "resampling", I = 5000)
   resampling_ci  <- unlist(resampling_fit[c("ci.lb", "estimate", "ci.ub")])
   
   diff <- proc_ci - resampling_ci
@@ -47,16 +47,13 @@ test_that("For unity weights, the resampling methods nearly equal default c-stat
   expect_lt(diff[[3]], .005)
 })
 
-test_that("For unity weights, the exact and resampling noreplace methods yield identical point estimates", {
+test_that("For unity weights, the exact methods yield identical point estimates", {
   w_auc_est_exact      <- wAUC(y, p, w, method = "exact")
-  w_auc_est_noreplace  <- wAUC(y, p, w, method = "resampling", replace = FALSE)
   w_auc_est_exact_slow <- wAUC_exact_slow(y, p, w)
   
-  est_noreplace  <- w_auc_est_noreplace$estimate
   est_exact      <- w_auc_est_exact$estimate
   est_exact_slow <- w_auc_est_exact_slow$estimate
   
-  expect_identical(est_noreplace, est_exact)
   expect_identical(est_exact, est_exact_slow)
 })
 
@@ -67,18 +64,18 @@ test_that("For unity weights, the exact and resampling noreplace methods yield i
 # p <- runif(n)
 # y <- rbinom(n, 1, p)
 # 
-# microbenchmark(AUC_default(y, p), AUC_factorial(y,p))
+# microbenchmark(wAUC:::AUC_default(y, p), 
+#                wAUC:::AUC(y, p),
+#                wAUC:::AUC_factorial(y,p), 
+#                suppressMessages(pROC::auc(y, p)))
 # 
 # n <- 200
 # p <- runif(n)
 # y <- rbinom(n, 1, p)
 # 
-# microbenchmark(AUC_default(y, p), AUC_factorial(y,p))
-# 
-# n <- 2000
-# p <- runif(n)
-# y <- rbinom(n, 1, p)
-# 
-# microbenchmark(AUC_default(y, p), AUC_factorial(y,p))
-# microbenchmark(AUC_default(y, p), suppressMessages(pROC::auc(y, p)))
-# microbenchmark(AUC_default(y, p), AUC(y, p), times = 10000)
+# microbenchmark(wAUC:::AUC_default(y, p), 
+#                wAUC:::AUC(y, p),
+#                wAUC:::AUC_factorial(y,p),
+#                suppressMessages(pROC::auc(y, p)))
+# AUC_default is always faster
+
