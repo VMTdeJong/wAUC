@@ -5,17 +5,18 @@
 # #' @param y numeric outcome vector: each value 1 or 0
 # #' @param p numeric predicted probabilities vector: 0 <= p <= 1
 # #' @param na.rm Should NA's be removed?
-# #' @param AUC_method default or factorial. default is always faster.
-# #' @param ... ignored
+# #' @param ... passed on.
 
-AUC <- function(y, p, na.rm = TRUE, AUC_method = "default", ...) {
+AUC <- function(y, p, na.rm = TRUE, ...) {
   out <- list(call = match.call(),
-              AUC_method = AUC_method)
+              AUC_method = list(...)$AUC_method)
   class(out) <- c("AUC", class(out))
-  if (pmatch(AUC_method, "default", nomatch = 0))
-    out$estimate <- AUC_default(y, p, na.rm, ...)
-  else
+  
+  if (!is.null(out$AUC_method) && pmatch(out$AUC_method, "factorial", nomatch = 0))
     out$estimate <- AUC_factorial(y, p, na.rm, ...)
+  else
+    out$estimate <- AUC_default(y, p, na.rm, ...)
+
   out
 }
 
