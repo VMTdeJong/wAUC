@@ -1,98 +1,70 @@
 #' Weighted c-statistic
 #'
-#' Calculate a weighted AUC or c-statistic, exactly or by resampling
+#' Calculate a weighted AUC or c-statistic, exact or by resampling
 #'
 #' @author Valentijn de Jong <Valentijn.M.T.de.Jong@gmail.com>
 #'
 #' @aliases wAUC wAUC_resampling wAUC_exact
 #'
-#' @usage wAUC(y, p, w, na.rm = TRUE, rescale.w = FALSE, method = "resampling", ...)
-#' wAUC_resampling(y, p, w, na.rm = TRUE, rescale.w = FALSE, replace = TRUE,
-#'                 size = length(p), I = 1000, level = .95, nonunity = FALSE,
-#'                 nonzero = FALSE, ret.resamples = FALSE,
-#'                 AUC_method = "default", ...)
-#' wAUC_exact(y, p, w, na.rm = TRUE, rescale.w = FALSE, nonunity = FALSE,
-#'            nonzero = FALSE,  ...)
+#' @usage wAUC(y, p, w, na.rm = TRUE, method = "resampling", ...)
+#' wAUC_resampling(y, p, w, na.rm = TRUE, I = 1000, level = .95, nonunity = FALSE,
+#'                 nonzero = FALSE, ret.resamples = FALSE, ...)
+#' wAUC_exact(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,  ...)
 #'
 #' @param y numeric outcome vector: each value 1 or 0
 #' @param p numeric predicted probabilities vector: 0 <= p <= 1
-#' @param w numeric weights. w >= for exact, 0 <= w <= 1 for resampling
+#' @param w numeric weights. w >= 0 for exact, 0 <= w <= 1 for resampling. Set to 
+#' \code{rep(1,length(y))} to obtain the unweighted AUC / c-statistic.
 #' @param na.rm Should NA's be removed?
-#' @param rescale.w Should w be rescaled to 0 <= w <= 1?
 #' @param method Use the "resampling" or "exact" method for calculation?
-#' @param replace Should sample be performed with replacement?
-#' @param size If sampling is performed with replacement, how many observations should be sampled per
-#' propensity weighted bootstrap?
-#' @param I number of resamples
-#' @param level Confidence level or percentile for the propensity weighted bootstrap percentiles with
-#' replacement.
+#' @param I number of bootstrap resamples
+#' @param level Confidence level or quantile for the propensity weighted bootstrap.
 #' @param ret.resamples Should all the resamples be returned?
-#' @param AUC_method default or factorial. default is always faster.
 #' @param nonunity Should a correction be applied when the estimate is exactly one?
 #' @param nonzero Should a correction be applied when the estimate is exactly zero?
 #' @param ... Passed to \code{wAUC_resampling} and \code{wAUC_exact}.
 #'
-#' @return A list of class wAUC. The exact method contains only a scalar: the AUC / c-statistic. The
-#' resampling version contains a list with the statistics and possibly the resamples.
+#' @return A list of class wAUC. The exact method contains only a scalar: the AUC / c-statistic, as 
+#' well as a list of the options. The resampling method contains a list with the statistics and 
+#' possibly the resamples, as well as the options. With the resampling method, the point estimate
+#' and 95\% CI are given by the .025, .975 and .5 quantiles of the bootstrap, respectively.
 #'
 #' @details Perfect (c = 1) and perfectly wrong (c = 0) values may lead to computational issues when
-#' (meta-)analyzed. Set nonunity to nonzero to TRUE to avoid this, which then respectively substracts or
+#' (meta-)analyzed. Set nonunity and/or nonzero to TRUE to avoid this, which then respectively substracts or
 #' adds a value equal to one tie when this is the case.
-#'
-#' For the resampling methods, setting replace = TRUE essentially gives a weighted bootstrap
-#' estimate. Hence, a confidence interval is returned. Setting replace = FALSE, yields smaller
-#' samples for any w < 1, but returns the exact same same for all w == 1. In the latter case
-#' the percentiles have the same value as the point estimate and cannot be interpreted as
-#' confidence intervals. Hence, no ci is returned when replace = FALSE.
 #'
 #' Note that unique_events and unique_nonevents may be switched. No check is performed for this.
 #'
 #' @export
-wAUC <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, method = "resampling", ...) {
+wAUC <- function(y, p, w, na.rm = TRUE, method = "resampling", ...) {
   if (pmatch(method, "resampling", nomatch = 0)) {
-    out <- wAUC_resampling(y, p, w, na.rm, rescale.w, ...)
+    out <- wAUC_resampling(y, p, w, na.rm, ...)
+    
     out$estimate <- out$statistics$median
-
-    if (out$options$replace) {
-      out$ci.lb <- out$statistics$pct.lb
-      out$ci.ub <- out$statistics$pct.ub
-    }
+    out$ci.lb <- out$statistics$pct.lb
+    out$ci.ub <- out$statistics$pct.ub
   }
   else
-    out <- wAUC_exact(y, p, w, na.rm, rescale.w, ...)
+    out <- wAUC_exact(y, p, w, na.rm, ...)
   out$call <- match.call()
   out
 }
 
 #' @export
-wAUC_resampling <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, replace = TRUE, size = length(p),
-                            I = 1000, level = .95, nonunity = FALSE, nonzero = FALSE,
-                            ret.resamples = FALSE, AUC_method = "default", ...) {
-  if (rescale.w) {
-    w <- w - min(w)
-    w <- w/max(w)
-  }
+wAUC_resampling <- function(y, p, w, na.rm = TRUE, I = 1000, level = .95, 
+                            nonunity = FALSE, nonzero = FALSE,
+                            ret.resamples = FALSE, ...) {
   resamples <- rep(NA, I)
   n_unique_obs <- matrix(nrow = I, ncol = 2)
-
-  if (replace) {
-    for (i in seq_len(I)) {
-      indices <- sample(length(p), size, replace = T, prob = w)
-      n_unique_obs[i, ] <- by(indices, y, function(x) length(unique(x)))[c(1,2)]
-      resamples[i] <- AUC(y[indices], p[indices], na.rm = na.rm, nonunity = nonunity, nonzero = nonzero,
-                          AUC_method = AUC_method)$estimate
-    }
-    colnames(n_unique_obs) <- names(by(indices, y, function(x) length(unique(x)))[c(1,2)])
-  } else {
-    for (i in seq_len(I)) {
-      indices <- which(as.logical(stats::rbinom(length(y), 1, prob = w)))
-      n_unique_obs[i, ] <- by(indices, y[indices], function(x) length(unique(x)))[c(1,2)]
-      resamples[i] <- AUC(y[indices], p[indices], na.rm = na.rm, nonunity = nonunity, nonzero = nonzero,
-                          AUC_method = AUC_method)$estimate
-    }
-    colnames(n_unique_obs) <- names(by(indices, y[indices], function(x) length(unique(x)))[c(1,2)])
+  
+  for (i in seq_len(I)) {
+    indices <- sample(x = length(p), size = length(p), replace = T, prob = w)
+    n_unique_obs[i, ] <- by(indices, y, function(x) length(unique(x)))[c(1,2)]
+    resamples[i] <- AUC(y[indices], p[indices], na.rm = na.rm, nonunity = nonunity, 
+                        nonzero = nonzero, ...)$estimate
   }
-
+  colnames(n_unique_obs) <- names(by(indices, y, function(x) length(unique(x)))[c(1,2)])
+  
   out <- list(statistics = data.frame(median = stats::median(resamples, na.rm = na.rm),
                                       mean = mean(resamples, na.rm = na.rm),
                                       pct.lb = stats::quantile(resamples, probs = (1 - level)/2),
@@ -104,8 +76,6 @@ wAUC_resampling <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, replace = 
                                       unique_nonevents = mean(n_unique_obs[ , 1]),
                                       row.names = "Estimate"),
               options = list(na.rm = na.rm,
-                             replace = replace,
-                             size = size,
                              I = I,
                              level = level,
                              nonunity = nonunity,
@@ -121,11 +91,7 @@ wAUC_resampling <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, replace = 
 }
 
 #' @export
-wAUC_exact <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, nonunity = FALSE, nonzero = FALSE,  ...){
-  if (rescale.w) {
-    w <- w - min(w)
-    w <- w/max(w)
-  }
+wAUC_exact <- function(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,  ...){
   out <- list(options = list(na.rm = na.rm,
                               nonunity = nonunity,
                               nonzero = nonzero))
@@ -158,11 +124,7 @@ wAUC_exact <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, nonunity = FALS
 # This function is always slower than the one above, and should always produce
 # the exact same value. The only reason that it is included is because this uses
 # the same notation as we did in the manuscript.
-wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, rescale.w = FALSE, nonunity = FALSE, nonzero = FALSE,  ...){
-  if (rescale.w) {
-    w <- w - min(w)
-    w <- w/max(w)
-  }
+wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,  ...){
   out <- list(options = list(na.rm = na.rm,
                              nonunity = nonunity,
                              nonzero = nonzero))
@@ -205,10 +167,6 @@ print.wAUC <- function(x, digits = 3, ...) {
 #' @author Valentijn de Jong
 #' @method print wAUC_resampling
 #' @export
-#' @S3
 print.wAUC_resampling <- function(x, digits = 3, ...) {
-  if (x$options$replace)
     print(round(with(x, data.frame(ci.lb = ci.lb, estimate = estimate, ci.ub = ci.ub, row.names = "Weighted AUC")), digits = 3))
-  else
-    print.wAUC(x, digits, ...)
 }
