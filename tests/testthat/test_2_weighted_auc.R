@@ -12,9 +12,9 @@ y <- rbinom(n, 1, p)
 w <- runif(n, min = w_min, max = w_max)
 
 ### Tests
-test_that("For random weights, the exact and resampling methods yield nearly equal point estimates", {
+test_that("For random weights, the exact and resample methods yield nearly equal point estimates", {
   w_auc_est_exact   <- wAUC(y, p, w, method = "exact")
-  w_auc_est_replace <- wAUC(y, p, w, method = "resampling", replace = TRUE)
+  w_auc_est_replace <- wAUC(y, p, w, method = "resample", replace = TRUE)
 
   est_replace <- w_auc_est_replace$estimate
   est_exact <- w_auc_est_exact$estimate
@@ -44,6 +44,6 @@ test_that("For random weights, the two exact methods yield identical point estim
 # microbenchmark(wAUC:::wAUC_exact(y, p, w),
 #                wAUC:::wAUC(y, p, w, method = "exact"),
 #                wAUC:::wAUC_exact_slow(y, p, w),
-#                wAUC:::wAUC(y, p, w, method = "resampling", I = I),
-#                wAUC:::wAUC(y, p, w, method = "resampling", I = I, AUC_method = "AUC_factorial")
+#                wAUC:::wAUC(y, p, w, method = "resample", I = I),
+#                wAUC:::wAUC(y, p, w, method = "resample", I = I, AUC_method = "AUC_factorial")
 # )
