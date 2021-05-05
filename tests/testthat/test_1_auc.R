@@ -47,6 +47,7 @@ test_that("For unity weights, the resampling methods nearly equal default c-stat
   expect_lt(diff[[3]], .005)
 })
 
+# Note that the difference may actually be ~1e-16 for some samples with a different seed.
 test_that("For unity weights, the exact methods yield identical point estimates", {
   w_auc_est_exact      <- wAUC(y, p, w, method = "exact")
   w_auc_est_exact_slow <- wAUC_exact_slow(y, p, w)
