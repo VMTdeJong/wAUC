@@ -1,6 +1,6 @@
 Package: wAUC
 Title: Calculate a Weighted AUC
-Version: 0.0.0.9001
+Version: 0.0.0.9002
 Authors@R: 
     person(given = "Valentijn",
            family = "de Jong",
