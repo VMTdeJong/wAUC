@@ -2,54 +2,75 @@
 % Please edit documentation in R/2_weighted_auc.R
 \name{wAUC}
 \alias{wAUC}
-\alias{wAUC_resampling}
+\alias{wAUC_resample}
 \alias{wAUC_exact}
 \title{Weighted c-statistic}
 \usage{
-wAUC(y, p, w, na.rm = TRUE, method = "resampling", ...)
-wAUC_resampling(y, p, w, na.rm = TRUE, I = 1000, level = .95, nonunity = FALSE,
-                nonzero = FALSE, ret.resamples = FALSE, ...)
-wAUC_exact(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,  ...)
+wAUC(y, p, w, na.rm = TRUE, method = "resample", ...)
+wAUC_resample(y, p, w, na.rm = TRUE, I = 1000, level = .95, 
+ret.resamples = FALSE, ...)
+wAUC_exact(y, p, w, na.rm = TRUE, ...)
 }
 \arguments{
 \item{y}{numeric outcome vector: each value 1 or 0}
 
 \item{p}{numeric predicted probabilities vector: 0 <= p <= 1}
 
-\item{w}{numeric weights. w >= 0 for exact, 0 <= w <= 1 for resampling. Set to 
-\code{rep(1,length(y))} to obtain the unweighted AUC / c-statistic.}
+\item{w}{numeric weights. w >= 0 for exact, 0 <= w <= 1 for resample. Set to 
+\code{NULL} or \code{rep(1,length(y))} to obtain the unweighted AUC / 
+c-statistic.}
 
 \item{na.rm}{Should NA's be removed?}
 
-\item{method}{Use the "resampling" or "exact" method for calculation?}
+\item{method}{Use the "resample" or "exact" method for calculation?}
 
-\item{...}{Passed to \code{wAUC_resampling} and \code{wAUC_exact}.}
+\item{...}{Passed to \code{wAUC_resample} and \code{wAUC_exact}.}
 
 \item{I}{number of bootstrap resamples}
 
-\item{level}{Confidence level or quantile for the propensity weighted bootstrap.}
+\item{level}{Confidence level or quantile for the propensity weighted 
+bootstrap.}
 
 \item{ret.resamples}{Should all the resamples be returned?}
-
-\item{nonunity}{Should a correction be applied when the estimate is exactly one?}
-
-\item{nonzero}{Should a correction be applied when the estimate is exactly zero?}
 }
 \value{
-A list of class wAUC. The exact method contains only a scalar: the AUC / c-statistic, as 
-well as a list of the options. The resampling method contains a list with the statistics and 
-possibly the resamples, as well as the options. With the resampling method, the point estimate
-and 95\% CI are given by the .025, .975 and .5 quantiles of the bootstrap, respectively.
+A list of class wAUC. The exact method contains a scalar: the 
+AUC / c-statistic, as well as a list of the options. The resample method 
+contains a list with the statistics and possibly the resamples, as well as 
+the options. With the resample method, the point estimate and 95\% CI are 
+given by the .025, .975 and .5 quantiles of the bootstrap, respectively.
 }
 \description{
 Calculate a weighted AUC or c-statistic, exact or by resampling
 }
 \details{
-Perfect (c = 1) and perfectly wrong (c = 0) values may lead to computational issues when
-(meta-)analyzed. Set nonunity and/or nonzero to TRUE to avoid this, which then respectively substracts or
-adds a value equal to one tie when this is the case.
+The confidence intervals produced by the resampling method assume 
+that a predefined model is validated/tested. If model selection is performed, 
+then the model selection should be performed within the bootstrap resampling 
+procedure to account for the uncertainty by the model selection.  
 
-Note that unique_events and unique_nonevents may be switched. No check is performed for this.
+Note that unique_events and unique_nonevents may be switched. No check is 
+performed for this.
+}
+\examples{
+# Fictional data
+y <- rep(c(rep(0, 10), rep(1, 10)),5)
+p <- rep(c(0:9, 1:10)/10, 5)
+w <- (1:100)/100
+
+# Unweighted AUC / concordance statistic
+wAUC(y, p, NULL)
+wAUC(y, p, w = rep(1,length(y)))
+
+# Weighted AUC / concordance statistic
+# With these 'random' weights the result is similar to the unweighted version
+wAUC(y, p, w)
+wAUC(y, p, w, method = "exact")
+wAUC(y, p, w, method = "resample") # Currently the default
+
+# With these obviously non-random weights, we get a very different result
+w2 <- (p + y)/2
+wAUC(y, p, w2, method = "exact")
 }
 \author{
 Valentijn de Jong <Valentijn.M.T.de.Jong@gmail.com>
