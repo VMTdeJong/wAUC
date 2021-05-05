@@ -4,64 +4,89 @@
 #'
 #' @author Valentijn de Jong <Valentijn.M.T.de.Jong@gmail.com>
 #'
-#' @aliases wAUC wAUC_resampling wAUC_exact
+#' @aliases wAUC wAUC_resample wAUC_exact
 #'
-#' @usage wAUC(y, p, w, na.rm = TRUE, method = "resampling", ...)
-#' wAUC_resampling(y, p, w, na.rm = TRUE, I = 1000, level = .95, nonunity = FALSE,
-#'                 nonzero = FALSE, ret.resamples = FALSE, ...)
-#' wAUC_exact(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,  ...)
+#' @usage wAUC(y, p, w, na.rm = TRUE, method = "resample", ...)
+#' wAUC_resample(y, p, w, na.rm = TRUE, I = 1000, level = .95, 
+#' ret.resamples = FALSE, ...)
+#' wAUC_exact(y, p, w, na.rm = TRUE, ...)
 #'
 #' @param y numeric outcome vector: each value 1 or 0
 #' @param p numeric predicted probabilities vector: 0 <= p <= 1
-#' @param w numeric weights. w >= 0 for exact, 0 <= w <= 1 for resampling. Set to 
-#' \code{rep(1,length(y))} to obtain the unweighted AUC / c-statistic.
+#' @param w numeric weights. w >= 0 for exact, 0 <= w <= 1 for resample. Set to 
+#' \code{NULL} or \code{rep(1,length(y))} to obtain the unweighted AUC / 
+#' c-statistic.
 #' @param na.rm Should NA's be removed?
-#' @param method Use the "resampling" or "exact" method for calculation?
+#' @param method Use the "resample" or "exact" method for calculation?
 #' @param I number of bootstrap resamples
-#' @param level Confidence level or quantile for the propensity weighted bootstrap.
+#' @param level Confidence level or quantile for the propensity weighted 
+#' bootstrap.
 #' @param ret.resamples Should all the resamples be returned?
-#' @param nonunity Should a correction be applied when the estimate is exactly one?
-#' @param nonzero Should a correction be applied when the estimate is exactly zero?
-#' @param ... Passed to \code{wAUC_resampling} and \code{wAUC_exact}.
+#' @param ... Passed to \code{wAUC_resample} and \code{wAUC_exact}.
 #'
-#' @return A list of class wAUC. The exact method contains only a scalar: the AUC / c-statistic, as 
-#' well as a list of the options. The resampling method contains a list with the statistics and 
-#' possibly the resamples, as well as the options. With the resampling method, the point estimate
-#' and 95\% CI are given by the .025, .975 and .5 quantiles of the bootstrap, respectively.
+#' @return A list of class wAUC. The exact method contains a scalar: the 
+#' AUC / c-statistic, as well as a list of the options. The resample method 
+#' contains a list with the statistics and possibly the resamples, as well as 
+#' the options. With the resample method, the point estimate and 95\% CI are 
+#' given by the .025, .975 and .5 quantiles of the bootstrap, respectively.
 #'
-#' @details Perfect (c = 1) and perfectly wrong (c = 0) values may lead to computational issues when
-#' (meta-)analyzed. Set nonunity and/or nonzero to TRUE to avoid this, which then respectively substracts or
-#' adds a value equal to one tie when this is the case.
+#' @details The confidence intervals produced by the resampling method assume 
+#' that a predefined model is validated/tested. If model selection is performed, 
+#' then the model selection should be performed within the bootstrap resampling 
+#' procedure to account for the uncertainty by the model selection.  
 #'
-#' Note that unique_events and unique_nonevents may be switched. No check is performed for this.
+#' Note that unique_events and unique_nonevents may be switched. No check is 
+#' performed for this.
 #'
 #' @export
-wAUC <- function(y, p, w, na.rm = TRUE, method = "resampling", ...) {
-  if (pmatch(method, "resampling", nomatch = 0)) {
-    out <- wAUC_resampling(y, p, w, na.rm, ...)
+#' @examples
+#' # Fictional data
+#' y <- rep(c(rep(0, 10), rep(1, 10)),5)
+#' p <- rep(c(0:9, 1:10)/10, 5)
+#' w <- (1:100)/100
+#' 
+#' # Unweighted AUC / concordance statistic
+#' wAUC(y, p, NULL)
+#' wAUC(y, p, w = rep(1,length(y)))
+#' 
+#' # Weighted AUC / concordance statistic
+#' # With these 'random' weights the result is similar to the unweighted version
+#' wAUC(y, p, w)
+#' wAUC(y, p, w, method = "exact")
+#' wAUC(y, p, w, method = "resample") # Currently the default
+#' 
+#' # With these obviously non-random weights, we get a very different result
+#' w2 <- (p + y)/2
+#' wAUC(y, p, w2, method = "exact")
+wAUC <- function(y, p, w, na.rm = TRUE, method = "resample", ...) {
+  if (pmatch(method, "resample", nomatch = 0)) {
+    out <- wAUC_resample(y, p, w, na.rm, ...)
     
     out$estimate <- out$statistics$median
     out$ci.lb <- out$statistics$pct.lb
     out$ci.ub <- out$statistics$pct.ub
   }
   else
-    out <- wAUC_exact(y, p, w, na.rm, ...)
+    out <- wAUC_exact(y, p, w, na.rm, AUC_method = method, ...)
   out$call <- match.call()
   out
 }
 
 #' @export
-wAUC_resampling <- function(y, p, w, na.rm = TRUE, I = 1000, level = .95, 
-                            nonunity = FALSE, nonzero = FALSE,
+wAUC_resample <- function(y, p, w, na.rm = TRUE, I = 1000, level = .95, 
                             ret.resamples = FALSE, ...) {
+  if (is.null(w)) {
+    weighted <- FALSE
+    w <- rep(1, length(y))
+  } else weighted <- TRUE
+  
   resamples <- rep(NA, I)
   n_unique_obs <- matrix(nrow = I, ncol = 2)
   
   for (i in seq_len(I)) {
     indices <- sample(x = length(p), size = length(p), replace = T, prob = w)
     n_unique_obs[i, ] <- by(indices, y, function(x) length(unique(x)))[c(1,2)]
-    resamples[i] <- AUC(y[indices], p[indices], na.rm = na.rm, nonunity = nonunity, 
-                        nonzero = nonzero, ...)$estimate
+    resamples[i] <- AUC(y[indices], p[indices], na.rm = na.rm, ...)$estimate
   }
   colnames(n_unique_obs) <- names(by(indices, y, function(x) length(unique(x)))[c(1,2)])
   
@@ -78,23 +103,27 @@ wAUC_resampling <- function(y, p, w, na.rm = TRUE, I = 1000, level = .95,
               options = list(na.rm = na.rm,
                              I = I,
                              level = level,
-                             nonunity = nonunity,
-                             nonzero = nonzero,
+                             weighted = weighted,
                              ret.resamples = ret.resamples)
   )
   if (ret.resamples) {
     out$resamples <- resamples
     out$n_unique_obs <- n_unique_obs
   }
-  class(out) <- c("wAUC_resampling", "wAUC", class(out))
+  class(out) <- c("wAUC_resample", "wAUC", class(out))
+  out$separation <- test_separation(out$statistics$median)
   out
 }
 
 #' @export
-wAUC_exact <- function(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,  ...){
+wAUC_exact <- function(y, p, w, na.rm = TRUE, ...){
+  if (is.null(w)) {
+    weighted <- FALSE
+    w <- rep(1, length(y))
+  } else weighted <- TRUE
+  
   out <- list(options = list(na.rm = na.rm,
-                              nonunity = nonunity,
-                              nonzero = nonzero))
+                             weighted = weighted))
   class(out) <- c("wAUC_exact", "wAUC", class(out))
 
   score_order <- order(p, decreasing=TRUE)
@@ -112,22 +141,22 @@ wAUC_exact <- function(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,
   s <- (outer(1:sum(y), 1:sum(!y), function(i, j) (sign(pos_p[i] - neg_p[j]))) + 1)
   W <- outer(pos_w, neg_w)
 
-  if (nonunity && all(s == 0))
-    s <- c(s, 1)
-  if (nonzero && all(s == 2))
-    s <- c(s, 1)
-
   out$estimate <- (mean(s*W, na.rm = na.rm) / mean(W, na.rm = na.rm))/2
+  out$separation <- test_separation(out$estimate)
   out
 }
 
 # This function is always slower than the one above, and should always produce
-# the exact same value. The only reason that it is included is because this uses
-# the same notation as we did in the manuscript.
-wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,  ...){
+# the (numerically) exact same value. The only reason that it is included is 
+# because this uses the same notation as we did in the manuscript.
+wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, ...){
+  if (is.null(w)) {
+    weighted <- FALSE
+    w <- rep(1, length(y))
+  } else weighted <- TRUE
+  
   out <- list(options = list(na.rm = na.rm,
-                             nonunity = nonunity,
-                             nonzero = nonzero))
+                             weighted = weighted))
   class(out) <- c("wAUC_exact", "wAUC", class(out))
   
   score_order <- order(p, decreasing=TRUE)
@@ -147,14 +176,14 @@ wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = F
     for (q in seq_along(neg_p))
       cs[i, q] <- (pos_p[i] > neg_p[q]) * W[i, q]
   
-  if (any(ties <- pos_p %in% neg_p))  # save ties for pos_p, if any ties, assess which
-    for (tie in which(ties))          # then only visit the pos_p that are tied (with neg_p)
+  if (any(ties <- pos_p %in% neg_p))  # Save ties for pos_p, if any ties, assess which
+    for (tie in which(ties))          # then only visit the pos_p that are tied (with neg_p).
       for (q in seq_along(neg_p))     # But visit all neg_p, because we don't know which neg_p were tied yet.
         if (pos_p[tie] == neg_p[q])
-          cs[tie, q] <- W[tie, q] / 2 # weight * 1/2 for a tie
+          cs[tie, q] <- W[tie, q] / 2 # weight * 1/2 for a tie # old
   
   out$estimate <- sum(cs, na.rm = na.rm) / sum(W)
-  
+  out$separation <- test_separation(out$estimate)
   out
 }
 
@@ -162,11 +191,27 @@ wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, nonunity = FALSE, nonzero = F
 #' @method print wAUC
 #' @export
 print.wAUC <- function(x, digits = 3, ...) {
-  cat("Weighted AUC: ", round(x$estimate, digits = digits), ".\n", sep = "")
+  name <- if (x$options$weighted) "Weighted AUC" else "AUC"
+  cat(name, ": ", round(x$estimate, digits = digits), "\n", sep = "")
+  test_separation(x$estimate)
 }
 #' @author Valentijn de Jong
-#' @method print wAUC_resampling
+#' @method print wAUC_resample
 #' @export
-print.wAUC_resampling <- function(x, digits = 3, ...) {
-    print(round(with(x, data.frame(ci.lb = ci.lb, estimate = estimate, ci.ub = ci.ub, row.names = "Weighted AUC")), digits = 3))
+print.wAUC_resample <- function(x, digits = 3, ...) {
+  name <- if (x$options$weighted) "Weighted AUC" else "AUC"
+  print(round(with(x, data.frame(ci.lb = ci.lb, estimate = estimate, ci.ub = ci.ub, row.names = name)), digits = 3))
+  test_separation(x$estimate)  
+}
+
+test_separation <- function(x) {
+  if (identical(x, 1)) {
+    warning("The estimated (weighted) AUC was exactly equal to 1. The point estimate and the confidence interval can be highly misleading.")
+    return(TRUE)
+  }
+  if (identical(x, 0)) {
+    warning("The estimated (weighted) AUC was exactly equal to 0. The point estimate and the confidence interval can be highly misleading.")
+    return(TRUE)
+  }  
+  return(FALSE)
 }

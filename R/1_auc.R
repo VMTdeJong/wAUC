@@ -38,9 +38,7 @@ AUC_default <- function(y, p, ...) {
   return((S0 - n0 * (n0 + 1)/2)/(as.numeric(n0) * as.numeric(n1)))
 }
 
-# #' @param nonunity Should a correction be applied when the estimate is exactly one?
-# #' @param nonzero Should a correction be applied when the estimate is exactly zero?
-AUC_factorial <- function(y, p, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE, ...){
+AUC_factorial <- function(y, p, na.rm = TRUE, ...){
   cats <- sort(unique(y))
   n_cat <- length(cats)
   if (n_cat > 2)
@@ -57,11 +55,6 @@ AUC_factorial <- function(y, p, na.rm = TRUE, nonunity = FALSE, nonzero = FALSE,
   neg_p <- p[!y]
 
   s <- outer(sum(y):1, 1:sum(!y), function(i, j) (1 + sign(pos_p[i] - neg_p[j])))
-
-  if (nonunity && all(s == 0))
-    s <- c(s, 1)
-  if (nonzero && all(s == 2))
-    s <- c(s, 1)
 
   mean(s, na.rm = na.rm)/2
 }
