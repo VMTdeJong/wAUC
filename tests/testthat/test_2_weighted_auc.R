@@ -14,12 +14,12 @@ w <- runif(n, min = w_min, max = w_max)
 ### Tests
 test_that("For random weights, the exact and resample methods yield nearly equal point estimates", {
   w_auc_est_exact   <- wAUC(y, p, w, method = "exact")
-  w_auc_est_replace <- wAUC(y, p, w, method = "resample", I = 100, replace = TRUE)
+  w_auc_est_replace <- wAUC(y, p, w, method = "resample", I = 1000, replace = TRUE)
 
   est_replace <- w_auc_est_replace$estimate
   est_exact <- w_auc_est_exact$estimate
 
-  expect_lt(est_exact - est_replace, .005)
+  expect_lt(abs(est_exact - est_replace), .002)
 })
 
 test_that("For random weights, the two exact methods yield identical point estimates", {
