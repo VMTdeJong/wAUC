@@ -36,13 +36,21 @@ test_that("For unity weights, the exact wAUC methods exactly equal the default A
 
 test_that("With no weights, the exact wAUC methods exactly equal the default AUC", {
   proc_est <- suppressMessages(unlist(pROC::auc(y, p)[[1]]))
-  weighted_exact_auc_est <- wAUC_exact(y, p, w)$est
-  weighted_e_auc_est <- wAUC(y, p, w = NULL, method = "exact")$est
-  weighted_exact_slow_auc_est <- wAUC_exact_slow(y, p, w)$e
   
-  expect_identical(proc_est, weighted_exact_auc_est)
-  expect_identical(weighted_exact_auc_est, weighted_e_auc_est)
-  expect_identical(weighted_exact_slow_auc_est, weighted_e_auc_est)
+  unweighted_exact_auc_est <- wAUC_exact(y, p, w = NULL)$est
+  unweighted_e_auc_est <- wAUC(y, p, w = NULL, method = "exact")$est
+  unweighted_exact_slow_auc_est <- wAUC_exact_slow(y, p, w = NULL)$e
+  
+  expect_identical(proc_est, unweighted_exact_auc_est)
+  expect_identical(proc_est, unweighted_e_auc_est)
+  expect_identical(proc_est, unweighted_exact_slow_auc_est)
+})
+
+
+test_that("With no weights, the resample wAUC method nearly equals the default AUC", {
+  proc_est <- suppressMessages(unlist(pROC::auc(y, p)[[1]]))
+  unweighted_re_auc_est <- wAUC_resample(y, p, w = NULL, I = 1000)$est
+  expect_true(abs(proc_est - unweighted_re_auc_est) < .002)
 })
 
 test_that("For unity weights, the resampling methods nearly equal default c-statistic and its ci", {
@@ -69,12 +77,31 @@ test_that("For unity weights, the exact methods yield identical point estimates"
   expect_identical(est_exact, est_exact_slow)
 })
 
-test_that("wAUC can be printed", {
+test_that("The exact method calculates ties", {
+  p_ties <- rep(0.5, length(y))
+  proc_est <- suppressMessages(unlist(pROC::auc(y, p_ties)[[1]]))
+  exact_ties_est <- wAUC(y, p_ties, w = NULL)$est
+  
+  expect_identical(proc_est, exact_ties_est)
+})
+
+test_that("AUC and wAUC can be printed", {
+  expect_true(inherits(print_un <- capture.output(print(AUC(y, p, w, method = "re", I = 5))), "character"))
   expect_true(inherits(print_re <- capture.output(print(wAUC(y, p, w, method = "re", I = 5))), "character"))
   expect_true(inherits(print_ex <- capture.output(print(wAUC(y, p, w, method = "exact", I = 5))), "character"))
   expect_true(inherits(print__r <- capture.output(print(wAUC_resample(y, p, w, I = 5))), "character"))
 })
 
+test_that("An incorrect number of categories is flagged", {
+  y1 <- rep(1, length(p))
+  expect_condition(AUC_default(y1, p))
+  expect_condition(AUC_factorial(y1, p))
+  
+  y3 <- y
+  y3[1] <- 3
+  expect_condition(AUC_default(y3, p))
+  expect_condition(AUC_factorial(y3, p))
+})
 
 # library("microbenchmark")
 # 
