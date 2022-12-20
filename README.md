@@ -9,4 +9,6 @@ This project has received funding from the European Union’s Horizon 2020 resea
 
   <!-- badges: start -->
   [![R-CMD-check](https://github.com/VMTdeJong/wAUC/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/VMTdeJong/wAUC/actions/workflows/R-CMD-check.yaml)
+  
+  [![codecov](https://codecov.io/gh/VMTdeJong/wAUC/branch/master/graph/badge.svg?token=C42M4QIZUP)](https://codecov.io/gh/VMTdeJong/wAUC)
   <!-- badges: end -->
