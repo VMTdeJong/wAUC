@@ -14,7 +14,7 @@ w <- runif(n, min = w_min, max = w_max)
 ### Tests
 test_that("For random weights, the exact and resample methods yield nearly equal point estimates", {
   w_auc_est_exact   <- wAUC(y, p, w, method = "exact")
-  w_auc_est_replace <- wAUC(y, p, w, method = "resample", replace = TRUE)
+  w_auc_est_replace <- wAUC(y, p, w, method = "resample", I = 100, replace = TRUE)
 
   est_replace <- w_auc_est_replace$estimate
   est_exact <- w_auc_est_exact$estimate
@@ -32,6 +32,15 @@ test_that("For random weights, the two exact methods yield identical point estim
   expect_identical(est_exact, est_exact_slow)
 })
 
+test_that("Apparently perfect estimate is flagged", {
+  expect_warning(perfect <- wAUC(y, y, w, method = "resample", I = 5))
+  expect_warning(print_perfect <- capture.output(print(perfect)))
+})
+
+test_that("Apparently perfectly reversed estimate is flagged", {
+  expect_warning(reversed <- wAUC(y, 1-y, w, method = "resample", I = 5))
+  expect_warning(print_reversed <- capture.output(print(reversed)))
+})
 
 # library("microbenchmark")
 # 
