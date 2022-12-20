@@ -42,6 +42,12 @@ test_that("Apparently perfectly reversed estimate is flagged", {
   expect_warning(print_reversed <- capture.output(print(reversed)))
 })
 
+test_that("wAUC_resample can return resamples", {
+  w_auc_est_replace <- wAUC_resample(y, p, w, I = 5, ret.resamples = TRUE)
+  expect_length(w_auc_est_replace$resamples, 5)
+  expect_length(w_auc_est_replace$n_unique_obs, 10)
+})
+
 # library("microbenchmark")
 # 
 # n <- 100
