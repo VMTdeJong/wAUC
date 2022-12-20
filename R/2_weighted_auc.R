@@ -59,13 +59,8 @@
 #' w2 <- (p + y)/2
 #' wAUC(y, p, w2, method = "exact")
 wAUC <- function(y, p, w, na.rm = TRUE, method = "resample", ...) {
-  if (pmatch(method, "resample", nomatch = 0)) {
+  if (pmatch(method, "resample", nomatch = 0))
     out <- wAUC_resample(y, p, w, na.rm, ...)
-    
-    out$estimate <- out$statistics$median
-    out$ci.lb <- out$statistics$pct.lb
-    out$ci.ub <- out$statistics$pct.ub
-  }
   else
     out <- wAUC_exact(y, p, w, na.rm, AUC_method = method, ...)
   out$call <- match.call()
@@ -106,6 +101,10 @@ wAUC_resample <- function(y, p, w, na.rm = TRUE, I = 1000, level = .95,
                              weighted = weighted,
                              ret.resamples = ret.resamples)
   )
+  out$estimate <- out$statistics$median
+  out$ci.lb <- out$statistics$pct.lb
+  out$ci.ub <- out$statistics$pct.ub
+  
   if (ret.resamples) {
     out$resamples <- resamples
     out$n_unique_obs <- n_unique_obs
@@ -194,6 +193,7 @@ print.wAUC <- function(x, digits = 3, ...) {
   name <- if (x$options$weighted) "Weighted AUC" else "AUC"
   cat(name, ": ", round(x$estimate, digits = digits), "\n", sep = "")
   test_separation(x$estimate)
+  invisible(x)
 }
 #' @author Valentijn de Jong
 #' @method print wAUC_resample
@@ -202,6 +202,7 @@ print.wAUC_resample <- function(x, digits = 3, ...) {
   name <- if (x$options$weighted) "Weighted AUC" else "AUC"
   print(round(with(x, data.frame(ci.lb = ci.lb, estimate = estimate, ci.ub = ci.ub, row.names = name)), digits = 3))
   test_separation(x$estimate)  
+  invisible(x)
 }
 
 test_separation <- function(x) {
