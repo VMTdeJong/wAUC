@@ -38,7 +38,7 @@ test_that("For unity weights, the resampling methods nearly equal default c-stat
   proc_fit <- suppressMessages(pROC::auc(y, p))
   proc_ci  <- suppressMessages(pROC::ci(proc_fit)[1:3])
   
-  resampling_fit <- wAUC(y, p, w, method = "resampling", I = 5000)
+  resampling_fit <- wAUC(y, p, w, method = "re", I = 5000)
   resampling_ci  <- unlist(resampling_fit[c("ci.lb", "estimate", "ci.ub")])
   
   diff <- proc_ci - resampling_ci
@@ -56,6 +56,12 @@ test_that("For unity weights, the exact methods yield identical point estimates"
   est_exact_slow <- w_auc_est_exact_slow$estimate
   
   expect_identical(est_exact, est_exact_slow)
+})
+
+test_that("wAUC can be printed", {
+  expect_true(inherits(print_re <- capture.output(print(wAUC(y, p, w, method = "re", I = 5))), "character"))
+  expect_true(inherits(print_ex <- capture.output(print(wAUC(y, p, w, method = "exact", I = 5))), "character"))
+  expect_true(inherits(print__r <- capture.output(print(wAUC_resample(y, p, w, I = 5))), "character"))
 })
 
 
