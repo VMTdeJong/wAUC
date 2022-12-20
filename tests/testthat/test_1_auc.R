@@ -12,7 +12,7 @@ w <- rep(1, n)
 ### Tests
 test_that("The unweighted exact AUC methods exactly equal the AUC", {
   proc_est      <- suppressMessages(unlist(pROC::auc(y, p)[[1]]))
-  auc_est       <- AUC(y, p)$est
+  auc_est       <- AUC(y, p, I = 100)$est
   auc_f_est     <- AUC(y, p, AUC_method = "factorial")$est
   auc_d_est     <- AUC(y, p, AUC_method = "default")$est
   factorial_est <- AUC_factorial(y, p)
@@ -38,7 +38,7 @@ test_that("For unity weights, the resampling methods nearly equal default c-stat
   proc_fit <- suppressMessages(pROC::auc(y, p))
   proc_ci  <- suppressMessages(pROC::ci(proc_fit)[1:3])
   
-  resampling_fit <- wAUC(y, p, w, method = "re", I = 5000)
+  resampling_fit <- wAUC(y, p, w, method = "re", I = 100)
   resampling_ci  <- unlist(resampling_fit[c("ci.lb", "estimate", "ci.ub")])
   
   diff <- proc_ci - resampling_ci
