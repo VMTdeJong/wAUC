@@ -34,6 +34,17 @@ test_that("For unity weights, the exact wAUC methods exactly equal the default A
   expect_identical(weighted_exact_auc_est, weighted_e_auc_est)
 })
 
+test_that("With no weights, the exact wAUC methods exactly equal the default AUC", {
+  proc_est <- suppressMessages(unlist(pROC::auc(y, p)[[1]]))
+  weighted_exact_auc_est <- wAUC_exact(y, p, w)$est
+  weighted_e_auc_est <- wAUC(y, p, w = NULL, method = "exact")$est
+  weighted_exact_slow_auc_est <- wAUC_exact_slow(y, p, w)$e
+  
+  expect_identical(proc_est, weighted_exact_auc_est)
+  expect_identical(weighted_exact_auc_est, weighted_e_auc_est)
+  expect_identical(weighted_exact_slow_auc_est, weighted_e_auc_est)
+})
+
 test_that("For unity weights, the resampling methods nearly equal default c-statistic and its ci", {
   proc_fit <- suppressMessages(pROC::auc(y, p))
   proc_ci  <- suppressMessages(pROC::ci(proc_fit)[1:3])
