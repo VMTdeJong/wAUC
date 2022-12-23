@@ -81,7 +81,7 @@ wAUC_resample <- function(y, p, w, na.rm = TRUE, I = 1000, level = .95,
   for (i in seq_len(I)) {
     indices <- sample(x = length(p), size = length(p), replace = T, prob = w)
     n_unique_obs[i, ] <- by(indices, y, function(x) length(unique(x)))[c(1,2)]
-    resamples[i] <- AUC(y[indices], p[indices], na.rm = na.rm, ...)$estimate
+    resamples[i] <- AUC(y[indices], p[indices], na.rm = na.rm, warn_separation = FALSE, ...)$estimate
   }
   colnames(n_unique_obs) <- names(by(indices, y, function(x) length(unique(x)))[c(1,2)])
   
