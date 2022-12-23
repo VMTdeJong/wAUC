@@ -17,6 +17,7 @@ AUC <- function(y, p, na.rm = TRUE, ...) {
   else
     out$estimate <- AUC_default(y, p, na.rm, ...)
 
+  out$separation <- test_separation(out$estimate, ...)
   out
 }
 
@@ -61,4 +62,5 @@ AUC_factorial <- function(y, p, na.rm = TRUE, ...){
 
 print.AUC <- function(x, digits = 3, ...) {
   cat("AUC: ", round(x$estimate, digits = digits), ".\n", sep = "")
+  print_separation(x$estimate)
 }
