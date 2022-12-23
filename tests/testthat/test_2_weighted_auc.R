@@ -33,13 +33,11 @@ test_that("For random weights, the two exact methods yield identical point estim
 })
 
 test_that("Apparently perfect estimate is flagged", {
-  expect_warning(perfect <- wAUC(y, y, w, method = "resample", I = 5))
-  # expect_warning(print_perfect <- capture.output(print(perfect)))
+  expect_warning(wAUC(y, y, w, method = "resample", I = 5))
 })
 
 test_that("Apparently perfectly reversed estimate is flagged", {
-  expect_warning(reversed <- wAUC(y, 1-y, w, method = "resample", I = 5))
-  # expect_warning(print_reversed <- capture.output(print(reversed)))
+  expect_warning(wAUC(y, 1-y, w, method = "resample", I = 5))
 })
 
 test_that("wAUC_resample can return resamples", {

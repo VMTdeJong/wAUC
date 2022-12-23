@@ -101,8 +101,8 @@ test_that("An incorrect number of categories is flagged", {
   
   y3 <- y
   y3[1] <- 3
-  expect_condition(est3cat_def <- AUC_default(y3, p))
-  expect_condition(est3cat_fac <- AUC_factorial(y3, p))
+  expect_condition(AUC_default(y3, p))
+  expect_condition(AUC_factorial(y3, p))
 })
 
 # library("microbenchmark")
