@@ -99,6 +99,12 @@ test_that("An incorrect number of categories is flagged", {
   expect_condition(AUC_default(y1, p))
   expect_condition(AUC_factorial(y1, p))
   
+  suppressWarnings(default_result <- AUC_default(y1, p))
+  expect_equal(default_result, NaN)
+  
+  suppressWarnings(factorial_result <- AUC_factorial(y1, p))
+  expect_equal(factorial_result, NaN)
+  
   y3 <- y
   y3[1] <- 3
   expect_condition(AUC_default(y3, p))
