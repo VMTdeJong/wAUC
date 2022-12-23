@@ -110,7 +110,7 @@ wAUC_resample <- function(y, p, w, na.rm = TRUE, I = 1000, level = .95,
     out$n_unique_obs <- n_unique_obs
   }
   class(out) <- c("wAUC_resample", "wAUC", class(out))
-  out$separation <- test_separation(out$statistics$median)
+  out$separation <- test_separation(out$statistics$median, ...)
   out
 }
 
@@ -141,7 +141,7 @@ wAUC_exact <- function(y, p, w, na.rm = TRUE, ...){
   W <- outer(pos_w, neg_w)
 
   out$estimate <- (mean(s*W, na.rm = na.rm) / mean(W, na.rm = na.rm))/2
-  out$separation <- test_separation(out$estimate)
+  out$separation <- test_separation(out$estimate, ...)
   out
 }
 
@@ -179,10 +179,10 @@ wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, ...){
     for (tie in which(ties))          # then only visit the pos_p that are tied (with neg_p).
       for (q in seq_along(neg_p))     # But visit all neg_p, because we don't know which neg_p were tied yet.
         if (pos_p[tie] == neg_p[q])
-          cs[tie, q] <- W[tie, q] / 2 # weight * 1/2 for a tie # old
+          cs[tie, q] <- W[tie, q] / 2 # weight
   
   out$estimate <- sum(cs, na.rm = na.rm) / sum(W)
-  out$separation <- test_separation(out$estimate)
+  out$separation <- test_separation(out$estimate, ...)
   out
 }
 
@@ -192,7 +192,7 @@ wAUC_exact_slow <- function(y, p, w, na.rm = TRUE, ...){
 print.wAUC <- function(x, digits = 3, ...) {
   name <- if (x$options$weighted) "Weighted AUC" else "AUC"
   cat(name, ": ", round(x$estimate, digits = digits), "\n", sep = "")
-  test_separation(x$estimate)
+  print_separation(x$estimate)
   invisible(x)
 }
 #' @author Valentijn de Jong
@@ -201,18 +201,27 @@ print.wAUC <- function(x, digits = 3, ...) {
 print.wAUC_resample <- function(x, digits = 3, ...) {
   name <- if (x$options$weighted) "Weighted AUC" else "AUC"
   print(round(with(x, data.frame(ci.lb = ci.lb, estimate = estimate, ci.ub = ci.ub, row.names = name)), digits = 3))
-  test_separation(x$estimate)  
+  print_separation(x$estimate)  
   invisible(x)
 }
 
-test_separation <- function(x) {
+test_separation <- function(x, warn_separation = TRUE, ...) {
   if (identical(x, 1)) {
-    warning("The estimated (weighted) AUC was exactly equal to 1. The point estimate and the confidence interval can be highly misleading.")
+    if (warn_separation)
+      warning("The estimated (weighted) AUC was exactly equal to 1. The point estimate and the confidence interval can be highly misleading.")
     return(TRUE)
   }
   if (identical(x, 0)) {
-    warning("The estimated (weighted) AUC was exactly equal to 0. The point estimate and the confidence interval can be highly misleading.")
+    if (warn_separation)
+      warning("The estimated (weighted) AUC was exactly equal to 0. The point estimate and the confidence interval can be highly misleading.")
     return(TRUE)
   }  
   return(FALSE)
+}
+
+print_separation <- function(x, ...) {
+  if (identical(x, 1))
+    cat("The estimated (weighted) AUC was exactly equal to 1. The point estimate and the confidence interval can be highly misleading.\n")
+  if (identical(x, 0))
+    cat("The estimated (weighted) AUC was exactly equal to 0. The point estimate and the confidence interval can be highly misleading.\n")
 }
