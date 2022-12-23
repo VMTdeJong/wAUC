@@ -81,15 +81,17 @@ test_that("The exact method calculates ties", {
   p_ties <- rep(0.5, length(y))
   proc_est <- suppressMessages(unlist(pROC::auc(y, p_ties)[[1]]))
   exact_ties_est <- wAUC(y, p_ties, w = NULL)$est
+  exact_slow_ties_est <- wAUC_exact_slow(y, p_ties, w = NULL)$est
   
   expect_identical(proc_est, exact_ties_est)
+  expect_identical(proc_est, exact_slow_ties_est)
 })
 
 test_that("AUC and wAUC can be printed", {
-  expect_true(inherits(print_un <- capture.output(print(AUC(y, p, w, method = "re", I = 5))), "character"))
-  expect_true(inherits(print_re <- capture.output(print(wAUC(y, p, w, method = "re", I = 5))), "character"))
-  expect_true(inherits(print_ex <- capture.output(print(wAUC(y, p, w, method = "exact", I = 5))), "character"))
-  expect_true(inherits(print__r <- capture.output(print(wAUC_resample(y, p, w, I = 5))), "character"))
+  expect_output(print(AUC(y, p, w, method = "re", I = 5)))
+  expect_output(print(wAUC(y, p, w, method = "re", I = 5)))
+  expect_output(print(wAUC(y, p, w, method = "exact", I = 5)))
+  expect_output(print(wAUC_resample(y, p, w, I = 5)))
 })
 
 test_that("An incorrect number of categories is flagged", {
@@ -99,8 +101,8 @@ test_that("An incorrect number of categories is flagged", {
   
   y3 <- y
   y3[1] <- 3
-  expect_condition(AUC_default(y3, p))
-  expect_condition(AUC_factorial(y3, p))
+  expect_condition(est3cat_def <- AUC_default(y3, p))
+  expect_condition(est3cat_fac <- AUC_factorial(y3, p))
 })
 
 # library("microbenchmark")
